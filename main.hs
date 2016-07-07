@@ -12,11 +12,23 @@ unique = do
 
 instrument :: LispVal -> State Int LispVal
 instrument (List []) = return $ List []
+instrument (List [Atom "time", e]) = do
+  e' <- instrument e
+  return $ List [Atom "time", e']
 instrument (List [Atom "if", e, then_, else_]) = do
   e' <- instrument e
   then_' <- instrument then_
   else_' <- instrument else_
   return $ List [Atom "if", e', then_', else_']
+instrument (List [Atom "else", e]) = do
+  e' <- instrument e
+  return $ List [Atom "else", e']
+instrument (List [Atom "case", clauses]) = do
+  clauses' <- instrument clauses
+  return $ List [Atom "case", clauses]
+instrument (List [Atom "cond", clauses]) = do
+  clauses' <- instrument clauses
+  return $ List [Atom "cond", clauses']
 instrument (List (Atom "and" : exprs)) = do
   exprs' <- mapM instrument exprs
   return $ List (Atom "and" : exprs')
@@ -29,6 +41,18 @@ instrument (List [Atom "define", name, body]) = do
 instrument (List [Atom "lambda", args, body]) = do
   body' <- instrument body
   return $ List [Atom "lambda", args, body']
+instrument (List [Atom "let", bindings, e]) = do
+  bindings' <- instrument bindings
+  e' <- instrument e
+  return $ List [Atom "let", bindings, e']
+instrument (List [Atom "let*", bindings, e]) = do
+  bindings' <- instrument bindings
+  e' <- instrument e
+  return $ List [Atom "let*", bindings', e']
+instrument (List [Atom "letrec", bindings, e]) = do
+  bindings' <- instrument bindings
+  e' <- instrument e
+  return $ List [Atom "letrec", bindings', e']
 instrument (List (func:args)) = do
   n <- unique
   func' <- instrument func
